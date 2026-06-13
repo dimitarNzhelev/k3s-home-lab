@@ -11,9 +11,16 @@ the infrastructure by committing YAML — not by running `kubectl`/`helm` by han
 |-----------|-------|---------|
 | Argo CD | `argo/argo-cd` | GitOps engine — also manages itself from this repo |
 | kube-prometheus-stack | `prometheus-community/kube-prometheus-stack` | Prometheus, Grafana, Alertmanager, node-exporter, kube-state-metrics |
+| Tailscale Operator | `tailscale/tailscale-operator` | Publishes the UIs as `*.ts.net` HTTPS URLs over the tailnet |
 
-Tailscale Operator (for `*.ts.net` HTTPS access to the UIs) is added in a later
-phase and is documented separately.
+UIs are published via `tailscale` Ingresses (`ingress/`):
+
+| UI | URL |
+|----|-----|
+| Grafana | https://grafana.tail652475.ts.net |
+| Argo CD | https://argocd.tail652475.ts.net |
+| Prometheus | https://prometheus.tail652475.ts.net |
+| Alertmanager | https://alertmanager.tail652475.ts.net |
 
 ## Layout
 
@@ -70,16 +77,23 @@ kubectl apply -f bootstrap/root-app.yaml
 
 Argo CD then syncs everything in `apps/`.
 
-## Accessing the UIs (until the Tailscale Operator is in place)
+## Accessing the UIs
+
+Over the tailnet at the `*.ts.net` URLs above — HTTPS, gated by your Tailscale
+ACLs, no exposed ports.
+
+Fallback via port-forward (e.g. if the operator is unavailable):
 
 ```bash
-# Argo CD
-kubectl -n argocd port-forward svc/argo-cd-argocd-server 8080:80
-kubectl -n argocd get secret argocd-initial-admin-secret \
-  -o jsonpath='{.data.password}' | base64 -d ; echo   # initial admin password
+kubectl -n argocd port-forward svc/argo-cd-argocd-server 8080:80              # http://localhost:8080
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80  # http://localhost:3000
+```
 
-# Grafana
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
+Initial Argo CD admin password:
+
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath='{.data.password}' | base64 -d ; echo
 ```
 
 ## Notes for k3s
