@@ -1,0 +1,6 @@
+# Never commit secrets or local kube state
+*.secret.yaml
+*-secret.yaml
+kubeconfig
+*.kubeconfig
+.DS_Store

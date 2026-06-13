@@ -1,0 +1,11 @@
+# Argo CD self-managed configuration.
+# TLS is terminated upstream by the Tailscale Operator (later phase), so the
+# API/UI server runs in insecure (HTTP) mode internally. For now it is reached
+# via `kubectl port-forward`.
+configs:
+  params:
+    server.insecure: true
+
+crds:
+  install: true
+  keep: true
