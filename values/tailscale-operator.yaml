@@ -1,0 +1,8 @@
+# Tailscale Kubernetes Operator.
+#
+# OAuth credentials are deliberately NOT here. They live in a pre-created Secret
+# named `operator-oauth` in the `tailscale` namespace, created out of band and
+# never committed (see README "Secrets you must create"). When no oauth values
+# are set, the chart uses that existing Secret.
+operatorConfig:
+  hostname: k3s-operator

@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: kube-prometheus-stack-prometheus
+      port:
+        number: 9090
+  tls:
+    - hosts:
+        - prometheus   # -> https://prometheus.tail652475.ts.net

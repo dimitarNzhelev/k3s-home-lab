@@ -5,6 +5,9 @@
 configs:
   params:
     server.insecure: true
+  cm:
+    # External URL — Argo CD is reached at this Tailscale Operator hostname.
+    url: https://argocd.tail652475.ts.net
 
 crds:
   install: true
