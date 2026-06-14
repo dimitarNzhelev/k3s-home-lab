@@ -1,0 +1,33 @@
+# Routes all (non-Watchdog) Alertmanager alerts to Discord.
+#
+# Uses Discord's Slack-compatible webhook endpoint (`<webhook>/slack`) via
+# slackConfigs.apiURL — a secret reference the Prometheus Operator resolves, so
+# the URL never lives in Git. The URL is in the `alertmanager-discord` secret
+# (key `url`), created out of band. Selected by Alertmanager's default
+# alertmanagerConfigSelector ({}) and made namespace-wide by the
+# OnNamespaceExceptForAlertmanagerNamespace matcher strategy set in the chart values.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: discord
+  namespace: monitoring
+spec:
+  route:
+    receiver: discord
+    groupBy: ['alertname', 'namespace']
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 4h
+  receivers:
+    - name: discord
+      slackConfigs:
+        - apiURL:
+            name: alertmanager-discord
+            key: url
+          sendResolved: true
+          title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+          text: |-
+            {{ range .Alerts -}}
+            *{{ .Labels.severity | toUpper }}* — {{ .Annotations.summary }}
+            {{ if .Annotations.description }}{{ .Annotations.description }}{{ end }}
+            {{ end }}

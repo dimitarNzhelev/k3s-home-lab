@@ -41,31 +41,16 @@ prometheus:
               storage: 20Gi
 
 alertmanager:
-  # Route all alerts to Discord (except the always-firing Watchdog). The webhook
-  # URL is NOT here — it lives in the `alertmanager-discord` secret (created out
-  # of band, mounted via alertmanagerSpec.secrets) and read with webhook_url_file.
-  config:
-    global:
-      resolve_timeout: 5m
-    route:
-      receiver: discord
-      group_by: ['alertname', 'namespace']
-      group_wait: 30s
-      group_interval: 5m
-      repeat_interval: 4h
-      routes:
-        - receiver: "null"
-          matchers:
-            - alertname = "Watchdog"
-    receivers:
-      - name: "null"
-      - name: discord
-        discord_configs:
-          - webhook_url_file: /etc/alertmanager/secrets/alertmanager-discord/webhook-url
-            send_resolved: true
+  # Alerts route to Discord via an AlertmanagerConfig CR
+  # (manifests/monitoring-extras/discord-alertmanagerconfig.yaml) that uses
+  # Discord's Slack-compatible webhook endpoint with slackConfigs.apiURL (a
+  # secret ref the operator resolves — keeps the URL out of Git). The Watchdog
+  # (which always fires) is dropped by the chart's default top-level route.
+  # matcherStrategy lets that monitoring-namespace config match alerts from ALL
+  # namespaces, not just monitoring.
   alertmanagerSpec:
-    secrets:
-      - alertmanager-discord   # mounted at /etc/alertmanager/secrets/alertmanager-discord/
+    alertmanagerConfigMatcherStrategy:
+      type: OnNamespaceExceptForAlertmanagerNamespace
     resources:
       requests:
         cpu: 25m
