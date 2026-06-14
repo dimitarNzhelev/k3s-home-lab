@@ -1,0 +1,55 @@
+# Alerting rules that turn the laptop's own hardware into signals.
+# Prometheus picks these up automatically (ruleSelectorNilUsesHelmValues: false).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: power-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: power.rules
+      rules:
+        # node-exporter exposes node_power_supply_online only for mains adapters
+        # (AC + USB-C PD), so all of them == 0 means wall power is gone.
+        - alert: HomeServerOnBattery
+          expr: max(node_power_supply_online) == 0
+          for: 30s
+          labels:
+            severity: warning
+          annotations:
+            summary: "Home server on battery — mains power lost"
+            description: "All AC adapters report offline; the laptop is running on its battery. Likely a power outage."
+        - alert: HomeServerBatteryCritical
+          expr: (min(node_power_supply_capacity{power_supply="BAT0"}) < 20) and (max(node_power_supply_online) == 0)
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Home server battery critically low while on battery"
+            description: "Battery at {{ $value }}% with no mains power — shutdown is imminent."
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: smart-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: smart.rules
+      rules:
+        - alert: SmartDiskHealthFailing
+          expr: smartctl_device_smart_status == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "SMART health FAILING on {{ $labels.device }}"
+            description: "smartctl reports the overall-health self-assessment as failed for {{ $labels.device }}. Back up and replace the disk."
+        - alert: SmartDiskHot
+          expr: smartctl_device_temperature{temperature_type="current"} > 75
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk {{ $labels.device }} running hot ({{ $value }}°C)"
+            description: "NVMe temperature above 75°C for 10m — check airflow (lid closed, no ventilation?)."

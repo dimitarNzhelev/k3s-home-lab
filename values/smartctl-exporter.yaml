@@ -1,0 +1,13 @@
+# smartctl exporter — reads NVMe SMART health from the host. Runs as a
+# privileged DaemonSet with host device access (chart defaults).
+fullnameOverride: smartctl-exporter
+
+serviceMonitor:
+  enabled: true
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    memory: 64Mi

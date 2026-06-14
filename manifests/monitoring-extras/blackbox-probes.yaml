@@ -1,0 +1,22 @@
+# Blackbox probes — Prometheus scrapes these targets THROUGH the blackbox
+# exporter to measure reachability/latency. Picked up automatically
+# (probeSelectorNilUsesHelmValues: false). Add targets by editing the list.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: external-uptime
+  namespace: monitoring
+spec:
+  jobName: blackbox-external
+  interval: 60s
+  module: http_2xx
+  prober:
+    url: blackbox-exporter.monitoring.svc:9115
+  targets:
+    staticConfig:
+      static:
+        - https://www.google.com
+        - https://github.com
+        - https://1.1.1.1
+      labels:
+        probe_group: external

@@ -1,0 +1,13 @@
+# Blackbox exporter — probes targets defined as Probe CRs in
+# manifests/monitoring-extras/blackbox-probes.yaml.
+fullnameOverride: blackbox-exporter
+
+serviceMonitor:
+  enabled: true   # scrape the exporter's own /metrics
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    memory: 64Mi
