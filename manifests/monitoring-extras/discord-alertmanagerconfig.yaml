@@ -18,7 +18,17 @@ spec:
     groupWait: 30s
     groupInterval: 5m
     repeatInterval: 4h
+    routes:
+      # The operator inserts this whole config as the first route with
+      # continue:true, so it catches Watchdog too. Watchdog always fires by
+      # design — divert it to an empty receiver instead of notifying Discord.
+      - receiver: blackhole
+        matchers:
+          - name: alertname
+            value: Watchdog
+            matchType: "="
   receivers:
+    - name: blackhole   # no configs = drop the notification
     - name: discord
       slackConfigs:
         - apiURL:
