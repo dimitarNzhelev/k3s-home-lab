@@ -1,0 +1,20 @@
+# Wraps each dashboard JSON as a ConfigMap labeled `grafana_dashboard: "1"` so the
+# kube-prometheus-stack Grafana sidecar auto-loads it (it watches all namespaces).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+
+configMapGenerator:
+  - name: dashboard-blackbox
+    files: [blackbox.json]
+  - name: dashboard-speedtest
+    files: [speedtest.json]
+  - name: dashboard-smart-health
+    files: [smart-health.json]
+  - name: dashboard-power
+    files: [power.json]
+
+generatorOptions:
+  disableNameSuffixHash: true   # stable names so Argo CD doesn't churn
+  labels:
+    grafana_dashboard: "1"
