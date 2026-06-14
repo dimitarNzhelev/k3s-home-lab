@@ -13,7 +13,6 @@ lab by committing YAML — not by running `kubectl`/`helm` by hand.
 | kube-prometheus-stack | `prometheus-community/kube-prometheus-stack` | Prometheus, Grafana, Alertmanager, node-exporter, kube-state-metrics |
 | Tailscale Operator | `tailscale/tailscale-operator` | Publishes the UIs as `*.ts.net` HTTPS over the tailnet |
 | AdGuard Home | `manifests/adguard` | Network-wide DNS ad/tracker blocking |
-| Uptime Kuma | `manifests/uptime-kuma` | Status page + service monitoring |
 | blackbox-exporter | `prometheus-community/prometheus-blackbox-exporter` | HTTP/uptime probes |
 | smartctl-exporter | `prometheus-community/prometheus-smartctl-exporter` | NVMe SMART health metrics |
 | speedtest-exporter | `manifests/speedtest-exporter` | Hourly ISP speed metrics |
@@ -29,7 +28,6 @@ lab by committing YAML — not by running `kubectl`/`helm` by hand.
 | Prometheus | https://prometheus.tail652475.ts.net |
 | Alertmanager | https://alertmanager.tail652475.ts.net |
 | AdGuard Home | https://adguard.tail652475.ts.net |
-| Uptime Kuma | https://uptime.tail652475.ts.net |
 
 ## Layout
 
@@ -39,7 +37,7 @@ apps/                       # one Argo CD Application per workload
 values/                     # Helm values for the chart-based apps
 ingress/                    # tailscale Ingresses for the UIs
 manifests/                  # raw manifests for the non-Helm apps
-  adguard/  uptime-kuma/  speedtest-exporter/  monitoring-extras/
+  adguard/  speedtest-exporter/  monitoring-extras/
 dashboards/                 # Grafana dashboard JSON + kustomization (→ ConfigMaps)
 ```
 
@@ -48,18 +46,15 @@ this repo). Raw-manifest apps point an Application at a `manifests/<app>` direct
 
 ## Alerting
 
-All Alertmanager alerts (except the always-firing Watchdog) and all Uptime Kuma
-monitor state-changes notify **Discord**.
+All Alertmanager alerts (except the always-firing Watchdog) notify **Discord**.
 
-- **Alertmanager → Discord:** `manifests/monitoring-extras/discord-alertmanagerconfig.yaml`
-  — an `AlertmanagerConfig` using `slackConfigs.apiURL` pointed at Discord's
-  Slack-compatible `<webhook>/slack` endpoint. (The prometheus-operator's config
-  validator rejects native `discord_configs` `webhook_url_file`, hence the Slack
-  endpoint.) `alertmanagerConfigMatcherStrategy: OnNamespaceExceptForAlertmanagerNamespace`
-  (in `values/kube-prometheus-stack.yaml`) makes the monitoring-namespace config
-  apply to alerts from every namespace.
-- **Uptime Kuma → Discord:** a default notification (native Discord webhook),
-  attached to all monitors. Stored in Uptime Kuma's own DB (PVC).
+`manifests/monitoring-extras/discord-alertmanagerconfig.yaml` — an
+`AlertmanagerConfig` using `slackConfigs.apiURL` pointed at Discord's
+Slack-compatible `<webhook>/slack` endpoint. (The prometheus-operator's config
+validator rejects native `discord_configs` `webhook_url_file`, hence the Slack
+endpoint.) `alertmanagerConfigMatcherStrategy: OnNamespaceExceptForAlertmanagerNamespace`
+(in `values/kube-prometheus-stack.yaml`) makes the monitoring-namespace config
+apply to alerts from every namespace; the Watchdog is diverted to an empty receiver.
 
 Custom alert rules: `HomeServerOnBattery` (mains power lost → running on battery),
 `HomeServerBatteryCritical`, `SmartDiskHealthFailing`, `SmartDiskHot`.
@@ -85,9 +80,8 @@ kubectl create secret generic alertmanager-discord -n monitoring \
   --from-literal=url='https://discord.com/api/webhooks/<id>/<token>/slack'
 ```
 
-App-managed credentials live in their own PVCs (not k8s secrets) and are recreated
-via each app's first-run wizard: the **AdGuard** admin, and the **Uptime Kuma**
-admin (whose DB also holds the Discord notification config).
+The **AdGuard** admin lives in its own PVC (not a k8s secret) and is recreated via
+its first-run wizard.
 
 ## Bootstrap from scratch
 
@@ -101,7 +95,7 @@ kubectl apply -f bootstrap/root-app.yaml
 ```
 
 Argo CD then syncs everything in `apps/`. Create the remaining secrets (above) for
-the components that need them, and run the AdGuard / Uptime Kuma first-run wizards.
+the components that need them, and run the AdGuard first-run wizard.
 
 ## Accessing the UIs
 
