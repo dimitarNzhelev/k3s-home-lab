@@ -11,9 +11,7 @@ lab by committing YAML — not by running `kubectl`/`helm` by hand.
 |---|---|---|
 | Argo CD | `argo/argo-cd` | GitOps engine — self-manages from this repo |
 | kube-prometheus-stack | `prometheus-community/kube-prometheus-stack` | Prometheus, Grafana, Alertmanager, node-exporter, kube-state-metrics |
-| Tailscale Operator | `tailscale/tailscale-operator` | Publishes the UIs as `*.ts.net` HTTPS over the tailnet |
-| AdGuard Home | `manifests/adguard` | Network-wide DNS ad/tracker blocking |
-| blackbox-exporter | `prometheus-community/prometheus-blackbox-exporter` | HTTP/uptime probes |
+| Tailscale Operator | `tailscale/tailscale-operator` | Publishes the UIs as `*.ts.net` HTTPS over the tailnet || blackbox-exporter | `prometheus-community/prometheus-blackbox-exporter` | HTTP/uptime probes |
 | smartctl-exporter | `prometheus-community/prometheus-smartctl-exporter` | NVMe SMART health metrics |
 | speedtest-exporter | `manifests/speedtest-exporter` | Hourly ISP speed metrics |
 | monitoring-extras | `manifests/monitoring-extras` | PrometheusRules, blackbox Probes, Discord AlertmanagerConfig |
@@ -27,8 +25,6 @@ lab by committing YAML — not by running `kubectl`/`helm` by hand.
 | Argo CD | https://argocd.tail652475.ts.net |
 | Prometheus | https://prometheus.tail652475.ts.net |
 | Alertmanager | https://alertmanager.tail652475.ts.net |
-| AdGuard Home | https://adguard.tail652475.ts.net |
-
 ## Layout
 
 ```
@@ -37,7 +33,7 @@ apps/                       # one Argo CD Application per workload
 values/                     # Helm values for the chart-based apps
 ingress/                    # tailscale Ingresses for the UIs
 manifests/                  # raw manifests for the non-Helm apps
-  adguard/  speedtest-exporter/  monitoring-extras/
+  speedtest-exporter/  monitoring-extras/
 dashboards/                 # Grafana dashboard JSON + kustomization (→ ConfigMaps)
 ```
 
@@ -80,9 +76,6 @@ kubectl create secret generic alertmanager-discord -n monitoring \
   --from-literal=url='https://discord.com/api/webhooks/<id>/<token>/slack'
 ```
 
-The **AdGuard** admin lives in its own PVC (not a k8s secret) and is recreated via
-its first-run wizard.
-
 ## Bootstrap from scratch
 
 ```bash
@@ -95,7 +88,7 @@ kubectl apply -f bootstrap/root-app.yaml
 ```
 
 Argo CD then syncs everything in `apps/`. Create the remaining secrets (above) for
-the components that need them, and run the AdGuard first-run wizard.
+the components that need them.
 
 ## Accessing the UIs
 
@@ -115,6 +108,3 @@ Initial Argo CD admin password:
 are disabled in `values/kube-prometheus-stack.yaml` — k3s bundles those into one
 process and this is a single-node SQLite cluster (no etcd), so their ServiceMonitors
 would sit permanently "down".
-
-To use AdGuard as your DNS, set the tailnet nameserver to the `adguard-dns`
-Tailscale device (`100.92.233.36`) in the Tailscale admin console.
