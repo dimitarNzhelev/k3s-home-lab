@@ -316,8 +316,8 @@ topologySpreadConstraints:
 
 storageclass:
   name: local-path
-  dataStorageSize: 256Mi
-  logStorageSize: 256Mi
+  dataStorageSize: 20G
+  logStorageSize: 2G
   pvcAnnotations: {}
     #pvcAnnotations:
     #  data:
