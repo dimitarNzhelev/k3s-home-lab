@@ -9,8 +9,8 @@ spec:
   project: default
   sources:
     - repoURL: https://charts.rustfs.com
-      chart: rustfs-chart
-      targetRevision: rustfs-0.8.0
+      chart: rustfs
+      targetRevision: 0.8.0
       helm:
         valueFiles:
           - $values/values/rustfs.yaml
