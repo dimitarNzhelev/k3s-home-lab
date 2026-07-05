@@ -1,0 +1,17 @@
+# Elasticsearch API on the tailnet — this is what Filebeat on the Raspberry Pi
+# ships to.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: elasticsearch
+  namespace: logging
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: logs-es-http
+      port:
+        number: 9200
+  tls:
+    - hosts:
+        - elasticsearch   # -> https://elasticsearch.tail652475.ts.net

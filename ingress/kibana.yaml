@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kibana
+  namespace: logging
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: logs-kb-http
+      port:
+        number: 5601
+  tls:
+    - hosts:
+        - kibana   # -> https://kibana.tail652475.ts.net

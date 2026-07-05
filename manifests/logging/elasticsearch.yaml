@@ -1,0 +1,40 @@
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: logs
+  namespace: logging
+spec:
+  version: 9.4.3
+  http:
+    tls:
+      # Plain HTTP inside the cluster; external access goes through the
+      # tailscale Ingress (ts.net HTTPS over WireGuard). Auth stays enforced.
+      selfSignedCertificate:
+        disabled: true
+  nodeSets:
+    - name: default
+      count: 1
+      config:
+        # Avoids the vm.max_map_count host sysctl requirement; fine at this
+        # log volume.
+        node.store.allow_mmap: false
+      podTemplate:
+        spec:
+          containers:
+            - name: elasticsearch
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 2Gi
+                limits:
+                  memory: 2Gi
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            storageClassName: local-path
+            resources:
+              requests:
+                storage: 20Gi

@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: eck-operator
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://helm.elastic.co
+      chart: eck-operator
+      targetRevision: 3.4.1
+      helm:
+        valueFiles:
+          - $values/values/eck-operator.yaml
+    - repoURL: https://github.com/dimitarNzhelev/k3s-home-lab.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: elastic-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # The Elasticsearch/Kibana CRDs are very large; server-side apply avoids
+      # the client-side last-applied-configuration annotation size limit.
+      - ServerSideApply=true

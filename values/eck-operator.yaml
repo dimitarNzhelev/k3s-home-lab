@@ -1,0 +1,9 @@
+# Elastic Cloud on Kubernetes (ECK) operator — manages the Elasticsearch and
+# Kibana resources in manifests/logging/. Chart defaults are fine for a
+# single-node lab; kept minimal on purpose.
+resources:
+  requests:
+    cpu: 50m
+    memory: 150Mi
+  limits:
+    memory: 512Mi
