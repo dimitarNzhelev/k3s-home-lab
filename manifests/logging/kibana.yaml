@@ -18,6 +18,7 @@ spec:
     # No login screen: everyone lands in Kibana as the ES anonymous user
     # (tailnet-only endpoint). Basic login stays available as a fallback at
     # /login?auth_provider_hint=basic.
+    xpack.security.authc.selector.enabled: false
     xpack.security.authc.providers:
       anonymous.anonymous1:
         order: 0
