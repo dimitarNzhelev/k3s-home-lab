@@ -25,7 +25,18 @@ TPL='{
   "data_stream": {},
   "priority": 500,
   "composed_of": ["logs@mappings", "logs@settings", "ecs@mappings"],
-  "template": { "settings": { "index.lifecycle.name": "pi-logs-14d", "index.number_of_replicas": 0 } }
+  "template": {
+    "settings": { "index.lifecycle.name": "pi-logs-14d", "index.number_of_replicas": 0 },
+    "mappings": {
+      "dynamic_templates": [
+        { "roomba_strings": {
+            "path_match": "roomba.*",
+            "match_mapping_type": "string",
+            "mapping": { "type": "keyword", "ignore_above": 1024 }
+        }}
+      ]
+    }
+  }
 }'
 out=$(curl -sS "${auth[@]}" "${json[@]}" -X PUT "$ES/_index_template/logs-pi" -d "$TPL")
 echo "$out"
