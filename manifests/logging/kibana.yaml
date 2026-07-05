@@ -15,6 +15,15 @@ spec:
         disabled: true
   config:
     server.publicBaseUrl: https://kibana.tail652475.ts.net
+    # No login screen: everyone lands in Kibana as the ES anonymous user
+    # (tailnet-only endpoint). Basic login stays available as a fallback at
+    # /login?auth_provider_hint=basic.
+    xpack.security.authc.providers:
+      anonymous.anonymous1:
+        order: 0
+        credentials: elasticsearch_anonymous_user
+      basic.basic1:
+        order: 1
   podTemplate:
     spec:
       containers:

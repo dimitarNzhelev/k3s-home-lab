@@ -18,6 +18,11 @@ spec:
         # Avoids the vm.max_map_count host sysctl requirement; fine at this
         # log volume.
         node.store.allow_mmap: false
+        # Anonymous access — the endpoint is tailnet-only, so requests without
+        # credentials act as this user (Kibana rides on it too).
+        xpack.security.authc.anonymous.username: anonymous
+        xpack.security.authc.anonymous.roles: superuser
+        xpack.security.authc.anonymous.authz_exception: false
       podTemplate:
         spec:
           containers:
