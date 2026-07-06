@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rustfs
+  namespace: rustfs
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: rustfs-svc
+      port:
+        number: 9001 # console
+  tls:
+    - hosts:
+        - rustfs # -> https://rustfs.tail652475.ts.net
