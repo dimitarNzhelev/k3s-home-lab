@@ -18,6 +18,7 @@ lab by committing YAML — not by running `kubectl`/`helm` by hand.
 | grafana-dashboards | `dashboards/` (kustomize) | Dashboards auto-loaded into Grafana via the sidecar |
 | ECK operator | `elastic/eck-operator` | Manages the Elasticsearch + Kibana resources |
 | logging | `manifests/logging` | Elasticsearch + Kibana — log search for the Raspberry Pi |
+| gpu-deal-watch | `manifests/gpu-deal-watch` (kustomize) | CronJob: RTX 3090s at €300–1000 on OLX.bg / Bazar.bg → Discord |
 
 ## Web UIs (tailnet HTTPS)
 
@@ -36,7 +37,7 @@ apps/                       # one Argo CD Application per workload
 values/                     # Helm values for the chart-based apps
 ingress/                    # tailscale Ingresses for the UIs
 manifests/                  # raw manifests for the non-Helm apps
-  speedtest-exporter/  monitoring-extras/  logging/
+  speedtest-exporter/  monitoring-extras/  logging/  gpu-deal-watch/
 dashboards/                 # Grafana dashboard JSON + kustomization (→ ConfigMaps)
 ```
 
@@ -82,6 +83,33 @@ Elasticsearch itself, not in Git. On a rebuild, re-run `scripts/es-setup.sh`
 on the server — it regenerates the Filebeat password and stores it in the
 `filebeat-pi` Secret (ns `logging`); update the Pi's `filebeat.yml` to match.
 
+## GPU deal watch (RTX 3090 on OLX / Bazar)
+
+`manifests/gpu-deal-watch` — a CronJob that every 5 minutes reads all OLX.bg and
+Bazar.bg results for "3090" and posts each new RTX 3090 priced **€300–1000** to the
+Discord alerts channel (the `alertmanager-discord` webhook; posts show as "GPU deal watch").
+
+- `watch.py` is plain Python (stdlib only) on the stock `python:3.13-alpine` image,
+  mounted from a ConfigMap that kustomize builds from the file — edit, commit, and
+  the next run uses it.
+- A title must contain `3090` **and** a GPU word (RTX, GeForce, NVIDIA, Asus, Zotac…).
+  Wanted ads (`купувам`/`търся`), broken cards (`за части`/`не работи`) and Dell
+  OptiPlex 3090 desktops are skipped. The €300 floor drops fans, coolers, empty boxes
+  and placeholder prices. Prices in лв are converted at 1.95583.
+- Posted listings are remembered in `/data/seen.json` (PVC `gpu-deal-watch-state`);
+  a listing is posted again only if its price drops further. Delete the PVC to forget
+  them (Argo CD recreates it empty).
+- Change the range with `MAX_EUR` / `MIN_EUR` in `cronjob.yaml`.
+- A failed run (site blocked, page layout changed, Discord down) fails the Job, so the
+  stock `KubeJobFailed` alert reaches Discord.
+
+```bash
+cd manifests/gpu-deal-watch
+python3 -m unittest -v test_watch                                    # unit tests
+DRY_RUN=1 MAX_EUR=2000 STATE_FILE=/tmp/seen.json python3 watch.py    # live, prints matches, sends nothing
+kubectl -n monitoring logs -l app=gpu-deal-watch --tail=20           # recent runs
+```
+
 ## Secrets you must create (NEVER committed)
 
 Kept out of Git; recreate by hand on a rebuild.
@@ -90,7 +118,7 @@ Kept out of Git; recreate by hand on a rebuild.
 |---|---|---|---|
 | `grafana-admin` | `monitoring` | `admin-user`, `admin-password` | Grafana login |
 | `operator-oauth` | `tailscale` | `client_id`, `client_secret` | Tailscale Operator |
-| `alertmanager-discord` | `monitoring` | `url` (Discord webhook **+ `/slack`**) | Alertmanager → Discord |
+| `alertmanager-discord` | `monitoring` | `url` (Discord webhook **+ `/slack`**) | Alertmanager and gpu-deal-watch → Discord |
 
 ```bash
 kubectl create secret generic grafana-admin -n monitoring \

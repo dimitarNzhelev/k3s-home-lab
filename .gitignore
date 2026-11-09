@@ -4,3 +4,6 @@
 kubeconfig
 *.kubeconfig
 .DS_Store
+
+# Python bytecode (manifests/gpu-deal-watch)
+__pycache__/

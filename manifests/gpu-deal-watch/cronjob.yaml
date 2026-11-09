@@ -1,0 +1,78 @@
+# Every 5 minutes: read all OLX.bg + Bazar.bg results for "3090" and post each new
+# RTX 3090 priced MIN_EUR–MAX_EUR to Discord — the same webhook Alertmanager uses
+# (secret alertmanager-discord). The PVC remembers what was already posted.
+# A failed run (site blocked, page layout changed, Discord down) fails the Job,
+# which trips the stock KubeJobFailed alert → Discord.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gpu-deal-watch
+  labels:
+    app: gpu-deal-watch
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 120
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 240
+      ttlSecondsAfterFinished: 3600   # a failed Job, and its KubeJobFailed alert, clears after an hour
+      template:
+        metadata:
+          labels:
+            app: gpu-deal-watch
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: watch
+              image: python:3.13-alpine
+              command: ["python", "/app/watch.py"]
+              env:
+                - name: DISCORD_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: alertmanager-discord
+                      key: url
+                - name: MAX_EUR
+                  value: "1000"
+                - name: MIN_EUR
+                  value: "300"
+                - name: STATE_FILE
+                  value: /data/seen.json
+                - name: PYTHONUNBUFFERED
+                  value: "1"
+                - name: PYTHONDONTWRITEBYTECODE
+                  value: "1"
+              resources:
+                requests:
+                  cpu: 20m
+                  memory: 32Mi
+                limits:
+                  memory: 128Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: script
+                  mountPath: /app
+                  readOnly: true
+                - name: state
+                  mountPath: /data
+          volumes:
+            - name: script
+              configMap:
+                name: gpu-deal-watch-script
+            - name: state
+              persistentVolumeClaim:
+                claimName: gpu-deal-watch-state

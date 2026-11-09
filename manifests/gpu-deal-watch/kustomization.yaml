@@ -1,0 +1,17 @@
+# GPU deal watch: posts RTX 3090s at 300–1000 € on OLX.bg / Bazar.bg to Discord.
+# watch.py becomes the gpu-deal-watch-script ConfigMap that the CronJob mounts.
+# test_watch.py is not deployed; run it with: python3 -m unittest -v test_watch
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+
+resources:
+  - cronjob.yaml
+  - pvc.yaml
+
+configMapGenerator:
+  - name: gpu-deal-watch-script
+    files: [watch.py]
+
+generatorOptions:
+  disableNameSuffixHash: true   # stable name; every run's new pod mounts the current script

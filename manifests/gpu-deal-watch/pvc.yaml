@@ -1,0 +1,14 @@
+# Holds /data/seen.json: the listings already posted to Discord (a few bytes).
+# Delete this PVC to forget them; Argo CD recreates it empty and current deals re-post.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gpu-deal-watch-state
+  labels:
+    app: gpu-deal-watch
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 16Mi
