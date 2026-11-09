@@ -102,11 +102,16 @@ Discord alerts channel (the `alertmanager-discord` webhook; posts show as "GPU d
 - Change the range with `MAX_EUR` / `MIN_EUR` in `cronjob.yaml`.
 - A failed run (site blocked, page layout changed, Discord down) fails the Job, so the
   stock `KubeJobFailed` alert reaches Discord.
+- OLX sits behind a CloudFront firewall that rejects some TLS handshakes — OpenSSL 3.5's
+  default (python:3.13-alpine) and the Mac's Python both get 403. So `watch.py` offers only
+  the X25519 key exchange, and the image is pinned by digest. Do live runs on the server,
+  and dry-run a new image in a pod before bumping the pin:
+  `kubectl -n default run gdw-test --rm -i --restart=Never --image=<new image> --env=DRY_RUN=1 --env=STATE_FILE=/tmp/s.json --command -- sh -c 'cat > /tmp/w.py && python /tmp/w.py' < watch.py`
 
 ```bash
 cd manifests/gpu-deal-watch
-python3 -m unittest -v test_watch                                    # unit tests
-DRY_RUN=1 MAX_EUR=2000 STATE_FILE=/tmp/seen.json python3 watch.py    # live, prints matches, sends nothing
+python3 -m unittest -v test_watch                                    # unit tests (no network)
+DRY_RUN=1 MAX_EUR=2000 STATE_FILE=/tmp/seen.json python3 watch.py    # on the server: live, prints matches, sends nothing
 kubectl -n monitoring logs -l app=gpu-deal-watch --tail=20           # recent runs
 ```
 

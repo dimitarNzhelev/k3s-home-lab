@@ -9,6 +9,8 @@ import os
 import tempfile
 import unittest
 import urllib.error
+import urllib.request
+from unittest import mock
 
 import watch
 from watch import Listing
@@ -199,6 +201,20 @@ def bazar_page(*ids):
 
 def not_found():
     return urllib.error.HTTPError("https://bazar.bg/obiavi", 404, "Not Found", None, None)
+
+
+class SiteTlsTest(unittest.TestCase):
+    def test_site_requests_use_the_x25519_only_tls_context(self):
+        # OLX's CloudFront firewall 403s OpenSSL 3.5's default handshake (seen 2026-11-09).
+        seen = {}
+
+        def fake_urlopen(request, timeout=None, context=None):
+            seen["context"] = context
+            return io.BytesIO(b"{}")
+
+        with mock.patch.object(urllib.request, "urlopen", fake_urlopen):
+            watch._get("https://www.olx.bg/api/v1/offers/", "application/json")
+        self.assertIs(seen["context"], watch.SITE_TLS)
 
 
 class FetchOlxTest(unittest.TestCase):

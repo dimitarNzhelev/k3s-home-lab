@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import ssl
 import sys
 import time
 import urllib.error
@@ -33,6 +34,12 @@ OLX_PAGE_SIZE = 50  # the most the OLX API returns per request
 BROWSER_UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/130.0 Safari/537.36")
 SITE_NAMES = {"olx": "OLX", "bazar": "Bazar"}
+
+# OLX's CloudFront firewall answers 403 to the default TLS handshake of OpenSSL 3.5
+# (as in python:3.13-alpine, which offers the post-quantum X25519MLKEM768 key exchange)
+# and 200 when only classic X25519 is offered. Verified from the cluster on 2026-11-09.
+SITE_TLS = ssl.create_default_context()
+SITE_TLS.set_ecdh_curve("X25519")
 
 MODEL_RE = re.compile(r"(?<!\d)3090(?!\d)")
 # A GPU word must be in the title too: plenty of other products carry "3090" in their
@@ -290,7 +297,7 @@ def run(fetchers: dict[str, Callable[[], list[Listing]]], state_path: str,
 def _get(url: str, accept: str) -> bytes:
     request = urllib.request.Request(
         url, headers={"User-Agent": BROWSER_UA, "Accept": accept, "Accept-Language": "bg,en;q=0.8"})
-    with urllib.request.urlopen(request, timeout=20) as response:
+    with urllib.request.urlopen(request, timeout=20, context=SITE_TLS) as response:
         return response.read()
 
 
