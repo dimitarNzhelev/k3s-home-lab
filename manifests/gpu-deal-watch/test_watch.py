@@ -256,7 +256,21 @@ class PickAlertsTest(unittest.TestCase):
                     deal(6, None), deal(7, 500, title="RTX 3080 10GB")]
         self.assertEqual(self.pick(listings), ["3", "1", "2"])
 
-    def test_already_alerted_only_again_when_the_price_drops(self):
+    def test_the_same_link_title_and_price_is_not_sent_twice(self):
+        item = deal(1, 950)
+        state = {item.key: {"url": item.url, "title": item.title, "price_eur": 950.0}}
+        self.assertEqual(self.pick([item], state), [])
+
+    def test_sent_again_when_the_price_title_or_link_changes(self):
+        sent = {"url": "https://example.test/1", "title": "RTX 3090 24GB Gaming OC", "price_eur": 950.0}
+        for item in [Listing("olx", "1", sent["title"], 990.0, sent["url"]),                    # price up
+                     Listing("olx", "1", sent["title"], 900.0, sent["url"]),                    # price down
+                     Listing("olx", "1", "RTX 3090 24GB Gaming OC спешно", 950.0, sent["url"]),  # title
+                     Listing("olx", "1", sent["title"], 950.0, "https://example.test/1-new")]:  # link
+            with self.subTest(item=item):
+                self.assertEqual(self.pick([item], {"olx:1": dict(sent)}), ["1"])
+
+    def test_state_from_before_2026_11_09_kept_only_the_price(self):
         state = {"olx:1": 950.0, "olx:2": 950.0}
         self.assertEqual(self.pick([deal(1, 950), deal(2, 900)], state), ["2"])
 
@@ -324,6 +338,11 @@ class RunTest(unittest.TestCase):
         self.assertEqual(self.run_once(fetchers)[0], 0)
         self.assertEqual(self.run_once(fetchers)[0], 0)
         self.assertEqual([d.id for d in self.sent], ["1"])
+
+    def test_remembers_link_title_and_price_of_each_sent_alert(self):
+        self.run_once({"olx": lambda: [deal(1, 950)]})
+        self.assertEqual(watch.load_state(self.state), {
+            "olx:1": {"url": "https://example.test/1", "title": "RTX 3090 24GB Gaming OC", "price_eur": 950.0}})
 
     def test_broken_site_fails_the_run_but_other_sites_still_alert(self):
         def blocked():

@@ -96,9 +96,10 @@ Discord alerts channel (the `alertmanager-discord` webhook; posts show as "GPU d
   Wanted ads (`купувам`/`търся`), broken cards (`за части`/`не работи`) and Dell
   OptiPlex 3090 desktops are skipped. The €300 floor drops fans, coolers, empty boxes
   and placeholder prices. Prices in лв are converted at 1.95583.
-- Posted listings are remembered in `/data/seen.json` (PVC `gpu-deal-watch-state`);
-  a listing is posted again only if its price drops further. Delete the PVC to forget
-  them (Argo CD recreates it empty).
+- Each sent alert's link, title and price are remembered in `/data/seen.json` (PVC
+  `gpu-deal-watch-state`); a listing is posted again whenever any of the three changes
+  (price up or down, edited title, new link). Delete the PVC to forget them (Argo CD
+  recreates it empty).
 - Change the range with `MAX_EUR` / `MIN_EUR` in `cronjob.yaml`.
 - A failed run (site blocked, page layout changed, Discord down) fails the Job, so the
   stock `KubeJobFailed` alert reaches Discord.

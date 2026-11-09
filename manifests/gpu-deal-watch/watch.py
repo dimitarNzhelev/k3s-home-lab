@@ -185,13 +185,23 @@ def parse_bazar(html: str) -> list[Listing]:
     return list(listings.values())
 
 
-def pick_alerts(listings: list[Listing], state: dict[str, float],
-                min_eur: float, max_eur: float) -> list[Listing]:
-    """3090s priced in [min_eur, max_eur] that were not alerted yet (or got cheaper), cheapest first."""
+def _sent_record(item: Listing) -> dict:
+    return {"url": item.url, "title": item.title, "price_eur": item.price_eur}
+
+
+def already_sent(item: Listing, state: dict) -> bool:
+    """True when this listing was already sent with the same link, title and price."""
+    prev = state.get(item.key)
+    if isinstance(prev, (int, float)):  # state written before 2026-11-09 kept only the price
+        return prev == item.price_eur
+    return isinstance(prev, dict) and all(prev.get(k) == v for k, v in _sent_record(item).items())
+
+
+def pick_alerts(listings: list[Listing], state: dict, min_eur: float, max_eur: float) -> list[Listing]:
+    """3090s priced in [min_eur, max_eur] not yet sent with this link, title and price; cheapest first."""
     deals = [item for item in listings
              if item.price_eur is not None and min_eur <= item.price_eur <= max_eur
-             and looks_like_3090(item.title)
-             and (item.key not in state or item.price_eur < state[item.key])]
+             and looks_like_3090(item.title) and not already_sent(item, state)]
     return sorted(deals, key=lambda item: item.price_eur)
 
 
@@ -232,8 +242,8 @@ def send_discord(webhook: str, payload: dict) -> None:
             time.sleep(min(wait, 30))
 
 
-def load_state(path: str) -> dict[str, float]:
-    """Listings already alerted, as {"olx:123": price_eur}."""
+def load_state(path: str) -> dict:
+    """Alerts already sent: {"olx:123": {"url": ..., "title": ..., "price_eur": ...}}."""
     try:
         with open(path, encoding="utf-8") as f:
             state = json.load(f)
@@ -245,7 +255,7 @@ def load_state(path: str) -> dict[str, float]:
     return state if isinstance(state, dict) else {}
 
 
-def save_state(path: str, state: dict[str, float]) -> None:
+def save_state(path: str, state: dict) -> None:
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
@@ -288,7 +298,7 @@ def run(fetchers: dict[str, Callable[[], list[Listing]]], state_path: str,
         except Exception as err:
             print(f"ERROR discord: {err}", file=sys.stderr)
             return 1
-        state[deal.key] = deal.price_eur
+        state[deal.key] = _sent_record(deal)
         save_state(state_path, state)
         print(f"ALERTED {line}")
     return 1 if failed else 0
